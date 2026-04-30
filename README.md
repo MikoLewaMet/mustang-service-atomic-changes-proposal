@@ -1,5 +1,44 @@
 # Mustang CI/CD Evolution: Repository Structure and Versioning Strategy
 
+## Table of Contents
+
+- [1. Executive Summary](#1-executive-summary)
+- [2. How Versioning and Deployment Work Today](#2-how-versioning-and-deployment-work-today)
+  - [2.1 How app artifact versions are produced](#21-how-app-artifact-versions-are-produced)
+  - [2.2 How infra POM files store those versions](#22-how-infra-pom-files-store-those-versions)
+  - [2.3 How deployment builds resolve and use artifacts](#23-how-deployment-builds-resolve-and-use-artifacts)
+  - [2.4 Current development and release flow](#24-current-development-and-release-flow)
+  - [2.5 Current pain points](#25-current-pain-points)
+- [3. Decision Axes](#3-decision-axes)
+- [4. Axis 1 - Where Code Resides](#4-axis-1---where-code-resides)
+  - [4.1 Separated Repos (current)](#41-separated-repos-current)
+  - [4.2 Plain Monorepo](#42-plain-monorepo)
+  - [4.3 Subtree Monorepo](#43-subtree-monorepo)
+- [5. Axis 2 - How Deployment Versions Are Referenced](#5-axis-2---how-deployment-versions-are-referenced)
+  - [5.1 Hash Reference (current)](#51-hash-reference-current)
+  - [5.2 Explicit Version Reference](#52-explicit-version-reference)
+  - [5.3 Inverted Dependency Manifest](#53-inverted-dependency-manifest)
+  - [5.4 Deployment Parameter with Artifactory (Artifact Id)](#54-deployment-parameter-with-artifactory-artifact-id)
+  - [5.5 Deployment Parameter - Build on Demand (no Artifactory)](#55-deployment-parameter---build-on-demand-no-artifactory)
+- [6. The Hash Reference Timing Problem (Monorepo/Subtree)](#6-the-hash-reference-timing-problem-monoreposubtree)
+- [7. Combined Approaches](#7-combined-approaches)
+  - [Approach 1: Separated Repos + Hash Reference (current baseline)](#approach-1-separated-repos--hash-reference-current-baseline)
+  - [Approach 2: Plain Monorepo + Hash Reference](#approach-2-plain-monorepo--hash-reference)
+  - [Approach 3: Subtree Monorepo + Hash Reference](#approach-3-subtree-monorepo--hash-reference)
+  - [Approach 4: Separated Repos + Inverted Dependency Manifest](#approach-4-separated-repos--inverted-dependency-manifest)
+  - [Approach 5: Separated Repos + Artifact Id Deployment Parameter](#approach-5-separated-repos--artifact-id-deployment-parameter)
+  - [Approach 6: Separated Repos + Build on Demand (no Artifactory)](#approach-6-separated-repos--build-on-demand-no-artifactory)
+  - [Approach 7: Plain Monorepo + Build on Demand](#approach-7-plain-monorepo--build-on-demand)
+  - [Approach 8: Plain Monorepo + Artifact Id Deployment Parameter](#approach-8-plain-monorepo--artifact-id-deployment-parameter)
+  - [Approach 9: Plain Monorepo + Inverted Dependency Manifest](#approach-9-plain-monorepo--inverted-dependency-manifest)
+- [8. Comparison Matrix](#8-comparison-matrix)
+- [9. Key Questions Answered](#9-key-questions-answered)
+- [10. Recommendation](#10-recommendation)
+- [11. Immediate Actions without changes to architecture](#11-immediate-actions-without-changes-to-architecture)
+- [12. Suggested Tickets Plan](#12-suggested-tickets-plan)
+
+---
+
 ## 1. Executive Summary
 
 The Mustang platform is split across four tightly-coupled repositories. Many changes require updates to several repos, forcing multiple PRs, coordinated sequencing, and strict dependency timing. This creates windows where one repo is updated while another is not, leading to pipeline failures and non-atomic deployments.
